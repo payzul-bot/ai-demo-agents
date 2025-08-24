@@ -12,6 +12,7 @@ from aiogram import Bot, Dispatcher, F, Router
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart
 from aiogram.types import Message, Update
+from aiogram.client.default import DefaultBotProperties
 from aiohttp import web
 from dotenv import load_dotenv
 
@@ -41,7 +42,7 @@ log = logging.getLogger("bot")
 # HTTP client wrapper
 # -----------------------------
 class MockAPIClient:
-    """Обёртка вокруг httpx с ретраями и логгированием."""
+    """Лёгкая обёртка вокруг httpx с ретраями и логированием."""
 
     def __init__(self, base_url: str):
         self._client = httpx.AsyncClient(base_url=base_url, timeout=10.0)
@@ -155,8 +156,10 @@ async def handle_text(m: Message) -> None:
         # ---- REALTY
         if mode == "realty":
             if any(k in text for k in ("квартира", "2-к", "2к")):
-                lst = await API.search_listings(budget_max=15_000_000, rooms=2) if hasattr(API, "search_listings") else \
-                    await API.get("/mock/realty/search", {"budget_max": 15_000_000, "district": "ЮЗАО", "rooms": 2, "mortgage": True})
+                lst = await API.get(
+                    "/mock/realty/search",
+                    {"budget_max": 15_000_000, "district": "ЮЗАО", "rooms": 2, "mortgage": True},
+                )
                 preview = "\n".join(
                     f"{x.get('id')}: {int(x.get('price', 0)):,} ₽ — {x.get('address','')}".replace(",", " ")
                     for x in lst
@@ -213,7 +216,10 @@ async def handle_text(m: Message) -> None:
 # -----------------------------
 # Webhook lifecycle
 # -----------------------------
-BOT = Bot(BOT_TOKEN, parse_mode=ParseMode.HTML)
+BOT = Bot(
+    token=BOT_TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+)
 DP = Dispatcher()
 DP.include_router(router)
 
